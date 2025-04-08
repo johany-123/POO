@@ -1,11 +1,12 @@
-<?php
- session_start();
 
- if (!isset($_SESSION['user_id'])) {
-     header("Location: ../login.html"); 
-     exit();
- }
+<?php
+session_start();
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header('Location: ../login.html');
+    exit();
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -32,6 +33,9 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="../views/home.php">Home</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">todos los post</a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">configuración</a>
                         <ul class="dropdown-menu">
@@ -41,10 +45,6 @@
                             <li><a class="dropdown-item" href="#">alguna otra acción</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled">Disabled</a>
-                    </li>
-                </ul>
                 <form class="d-flex">
                     <input class="form-control me-2" type="search" placeholder="Search">
                     <button class="btn btn-outline-light" type="submit">Search</button>
@@ -54,3 +54,8 @@
     </nav>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </header>
+<body>
+<h1>Bienvenido, <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
+    <p><strong>Email:</strong> <?php echo htmlspecialchars($_SESSION['email']); ?></p>
+    <p><strong>ID de usuario:</strong> <?php echo htmlspecialchars($_SESSION['user_id']); ?></p>
+</body>

@@ -1,7 +1,13 @@
 <?php
 session_start();
+include_once './config.php'; // Asegurate que esta ruta esté bien
 
-include_once './config.php';
+$db = new DbConfig();
+$conn = $db->getConnection();
+
+if (!$conn) {
+    die("Error al conectar a la base de datos.");
+}
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (empty($_POST['username']) || empty($_POST['email']) || empty($_POST['password'])) {
@@ -13,32 +19,37 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim(filter_var($_POST['email'], FILTER_SANITIZE_EMAIL));
     $password = $_POST['password'];
 
-    $query = "SELECT * FROM users WHERE username = ? OR email = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("ss", $username, $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    try {
+        // Verificar si ya existe el usuario o correo
+        $query = "SELECT * FROM users WHERE username = :username OR email = :email";
+        $stmt = $conn->prepare($query);
+        $stmt->bindParam(':username', $username);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
 
-    if ($result->num_rows > 0) {
-        echo json_encode(["status" => "error", "message" => "El nombre de usuario o el correo ya están registrados."]);
-        exit;
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(["status" => "error", "message" => "El nombre de usuario o el correo ya están registrados."]);
+            exit;
+        }
+
+        // Encriptar contraseña
+        $contrasena_encriptada = password_hash($password, PASSWORD_DEFAULT);
+
+        // Insertar nuevo usuario
+        $insert = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
+        $stmt = $conn->prepare($insert);
+        $stmt->bindParam(':username', $username);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':password', $contrasena_encriptada);
+
+        if ($stmt->execute()) {
+            echo json_encode(["status" => "success", "message" => "Usuario registrado con éxito."]);
+        } else {
+            echo json_encode(["status" => "error", "message" => "Error al registrar el usuario."]);
+        }
+
+    } catch (PDOException $e) {
+        echo json_encode(["status" => "error", "message" => "Error en la base de datos: " . $e->getMessage()]);
     }
-
-    // Encriptar contraseña
-    $contrasena_encriptada = password_hash($password, PASSWORD_DEFAULT);
-
-    $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sss", $username, $email, $contrasena_encriptada);
-
-    if ($stmt->execute()) {
-        echo json_encode(["status" => "success", "message" => "Usuario registrado con éxito."]);
-    } else {
-        echo json_encode(["status" => "error", "message" => "Error al registrar el usuario."]);
-    }
-
-    $stmt->close();
-    $conn->close();
 }
-
 ?>

@@ -7,14 +7,38 @@
     <link rel="stylesheet" href="../css/style-registro.css">
 </head>
 <body>
-    <form action="./home.php" method="POST">
+    <form>
         <input type="text" name="username" placeholder="Nombre de usuario" required>
         <input type="email" name="email" placeholder="Correo electrónico" required>
         <input type="password" name="password" placeholder="Contraseña" required>
-        <a href="./home.php">
-            <button>Registrarse</button>
-        </a>
-        <span class="signup">ya tienes cuenta?&nbsp;<a href="../backend/logout.php" class="link">Inicia sesion</a></span>
+        <button type="submit">Registrarse</button>
+        <span class="signup">
+            ¿Ya tienes cuenta? <a href="login.html" class="link">Inicia sesión</a>
+        </span>
     </form>
+    
+    <script>
+        document.querySelector("form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+        
+            const formData = new FormData(this);
+        
+            const response = await fetch("../backend/registros.php", {
+                method: "POST",
+                body: formData
+            });
+        
+            const result = await response.json();
+        
+            alert(result.message);
+        
+            if (result.status === "success") {
+                setTimeout(() => {
+                    window.location.href = "/ProyectoFinal/login.html";
+                }, 1000);
+            }
+        });
+        </script>
+        
 </body>
 </html>

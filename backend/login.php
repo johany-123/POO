@@ -1,95 +1,53 @@
 <?php
-
-session_start(); // Asegúrate de iniciar la sesión antes de acceder a las variables de sesión.
+session_start();
+header('Content-Type: application/json');
 
 require_once './config.php';
 
-
 class Auth {
+    private $db;
 
-  private $db;
-
-  public function __construct(){
-
-     $dbConfig = new DbConfig();
-     $this->db = $dbConfig->getConnection();
-  }
-
-
-  public function getDb(){
-     return $this->db;
-  }
-
-
-  public function authenticate($username, $password){
-
-    $sql = "SELECT * FROM users WHERE email = :email";
-    $stmt = $this->db->prepare($sql);
-    $stmt->bindParam(':email', $username);
-    $stmt->execute();
-
-
-    if ($stmt->rowCount() == 1) {
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        $hashedPassword = $row['password']; // Obtén la contraseña hasheada almacenada en la base de datos
-
-        if (password_verify($password, $hashedPassword)) {
-            // La contraseña proporcionada coincide con la contraseña almacenada
-
-            if ($row['status'] === 'Activo') {
-                $_SESSION['logged_in'] = true;
-                $_SESSION['user_id'] = $row['id_users'];
-                $_SESSION['email'] = $row['email'];
-                $_SESSION['username'] = $row['username'];
-
-
-                return true; // Autenticación exitosa
-            } else {
-                return 'inactive'; // Usuario inactivo
-            }
-        } else {
-            return 'invalid'; // Credenciales inválidas
-        }
-    } else {
-        return 'invalid'; // Usuario no encontrado
+    public function __construct() {
+        $dbConfig = new DbConfig();
+        $this->db = $dbConfig->getConnection();
     }
-  } 
 
+    public function authenticate($email, $password) {
+        $sql = "SELECT * FROM users WHERE email = :email";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+
+        if ($stmt->rowCount() === 1) {
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (password_verify($password, $user['password'])) {
+                // Guardar en sesión
+                $_SESSION['logged_in'] = true;
+                $_SESSION['user_id'] = $user['id_users'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['username'] = $user['username'];
+
+                return ['status' => 'success', 'message' => 'Inicio de sesión exitoso.'];
+            }
+        }
+
+        return ['status' => 'error', 'message' => 'Correo o contraseña incorrectos.'];
+    }
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+// Procesar solicitud POST
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $email = trim($_POST['username'] ?? '');  // Se sigue llamando "username" en el input
+    $password = $_POST['password'] ?? '';
+
+    if (empty($email) || empty($password)) {
+        echo json_encode(['status' => 'error', 'message' => 'Todos los campos son obligatorios.']);
+        exit;
+    }
 
     $auth = new Auth();
-    $result = $auth->authenticate($username, $password);
+    $result = $auth->authenticate($email, $password);
 
-    if ($result === true) {
-        // Autenticación exitosa
-        $response = array(
-            'status' => 'success',
-            'user_id' => $_SESSION['user_id'],
-            'email' => $_SESSION['email'],
-            'username' => $_SESSION['username'], 
-        );
-
-        
-        echo json_encode($response);
-    } elseif ($result === 'inactive') {
-        // Usuario inactivo
-        $response = array(
-            'status' => 'error',
-            'message' => 'El usuario está inactivo'
-        );
-        echo json_encode($response);
-    } elseif ($result === 'invalid') {
-        // Credenciales inválidas
-        $response = array(
-            'status' => 'error',
-            'message' => 'Verifique la información ingresada'
-        );
-        echo json_encode($response);
-}
+    echo json_encode($result);
 }
 ?>

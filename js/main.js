@@ -23,33 +23,34 @@ $(document).ready(function () {
   
   
   function loginUser(username, password) {
+    $.ajax({
+      url: "./backend/login.php",
+      method: "POST",
+      data: { username: username, password: password },
+      dataType: "json",
+      success: function (response) {
+        console.log("Respuesta:", response);
   
-      
-      $.ajax({
-        url: "./backend/login.php",
-        method: "POST",
-        data: { username: username, password: password },
-        dataType: "json",
-        success: function (response) {
-          console.log("REspuesta nuevo user");
-          console.log(response);
-    
-          if (response.status === "success") {
-            window.location.href = "./views/home.php";
-          } else if (response.status === "error") {
-            if (response.message === "El usuario está inactivo") {
-              // Usuario inactivo
-            } else {
-              // Credenciales inválidas u otro error
-              console.log("Error: " + response.message);
-              $('input[name="username"]').val("");
-              $('input[name="password"]').val("");
-            }
+        if (response.status === "success") {
+          window.location.href = "./views/home.php";
+        } else if (response.status === "error") {
+          if (response.message === "El usuario está inactivo") {
+            alert("Tu cuenta está inactiva. Contacta al administrador.");
           } else {
-            console.log("Otro error");
-            $("#result").html("<p>Error in AJAX call</p>");
+            alert("Credenciales incorrectas. Por favor, verifica tus datos.");
           }
-        },
-      });
-    }
-
+  
+          // Limpiar los campos
+          $('input[name="username"]').val("");
+          $('input[name="password"]').val("");
+        } else {
+          console.log("Otro error inesperado");
+          $("#result").html("<p>Error en la solicitud AJAX</p>");
+        }
+      },
+      error: function () {
+        alert("Error al conectar con el servidor.");
+      }
+    });
+  }
+  
